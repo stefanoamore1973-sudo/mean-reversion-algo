@@ -64,6 +64,9 @@ if small_cap_mode:
     min_price = 2.0
     min_adv20_m = 1.0
 
+st.sidebar.subheader("Diagnostica")
+debug_mode = st.sidebar.checkbox("🔬 Debug mode (mostra dati grezzi Tiingo)", value=False)
+
 run = st.sidebar.button("🚀 Run Analysis", type="primary", use_container_width=True)
 
 # ============================================================================
@@ -361,7 +364,7 @@ if run:
         progress.progress((i+1)/len(tickers))
         
         try:
-            analysis = fetch_and_analyze(ticker, api_key, spy_daily=spy_daily)
+            analysis = fetch_and_analyze(ticker, api_key, spy_daily=spy_daily, debug=debug_mode)
             if analysis is None:
                 errors.append(f"{ticker}: fetch fallito")
                 continue
@@ -440,6 +443,38 @@ if run:
         with st.expander(f"⚠️ Errori ({len(errors)})"):
             for e in errors:
                 st.error(e)
+    
+    # -------------------------------------------------------------------
+    # DIAGNOSTIC SECTION (solo se debug mode)
+    # -------------------------------------------------------------------
+    if debug_mode and (results or errors):
+        st.markdown("---")
+        st.subheader("🔬 Diagnostic Data (dati grezzi Tiingo)")
+        st.caption("Sezione di debug: mostra esattamente cosa Tiingo sta restituendo per ogni ticker.")
+        
+        for r in results:
+            a = r['analysis']
+            diag = a.get('_diagnostic', {})
+            if diag:
+                with st.expander(f"🔬 {a['ticker']} — raw data"):
+                    st.markdown("**Quote endpoint fields:**")
+                    st.write(diag.get('quote_keys', []))
+                    st.markdown(f"**Quote volume field value:** `{diag.get('quote_volume_field')}`")
+                    st.markdown(f"**Intraday bars (tutte, 3gg):** {diag.get('intraday_df_all_rows')} righe")
+                    st.markdown(f"**Intraday bars (solo oggi):** {diag.get('intraday_df_today_rows')} righe")
+                    st.markdown(f"**Colonne intraday:** {diag.get('intraday_df_all_cols')}")
+                    st.markdown(f"**Daily bars:** {diag.get('daily_df_rows')} righe")
+                    st.markdown(f"**Volume cumulato oggi (sum barre 1-min):** {diag.get('volume_sum_today')}")
+                    st.markdown(f"**Barre con volume > 0:** {diag.get('volume_nonzero_bars')} / {diag.get('intraday_df_today_rows')}")
+                    st.markdown(f"**Volume max in una barra:** {diag.get('volume_max_bar')}")
+                    
+                    st.markdown("**Prime 3 barre di oggi (raw):**")
+                    st.json(diag.get('intraday_today_first_3', []))
+                    
+                    st.markdown("**Ultima barra di oggi (raw):**")
+                    st.json(diag.get('intraday_today_last_1', []))
+                    
+                    st.markdown(f"**Sorgente usata per vol_ratio:** `{a.get('vol_source', 'N/A')}`")
     
     # -------------------------------------------------------------------
     # DETAILED BREAKDOWN
