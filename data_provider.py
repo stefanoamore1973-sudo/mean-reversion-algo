@@ -42,7 +42,7 @@ class TiingoProvider:
             return None
     
     def get_intraday_bars(self, ticker, start_date, resample_freq='1min'):
-        url = f"{self.base_url}/iex/{ticker}/prices?startDate={start_date}&resampleFreq={resample_freq}&token={self.api_key}"
+        url = f"{self.base_url}/iex/{ticker}/prices?startDate={start_date}&resampleFreq={resample_freq}&columns=open,high,low,close,volume&token={self.api_key}"
         try:
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
